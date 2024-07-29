@@ -28,7 +28,7 @@ behind-proxy: true
 # iOS app that forwards such messages.
 #
 # 1. https://docs.ntfy.sh/config/#ios-instant-notifications
-base-url: "https://notifications.479831.xyz"
+base-url: "https://ntfy.docker.fs1.home"
 # upstream-access-token:
 
 ## message cache
@@ -70,7 +70,7 @@ visitor-attachment-daily-bandwidth-limit: 512M
 # specially crafted e-mails can be sent from here and end
 # up in one or more of our topics.
 smtp-server-listen: ":25"
-smtp-server-domain: "notifications.479831.xyz"
+smtp-server-domain: "docker.fs1.home"
 smtp-server-addr-prefix: "notify-"
 
 # NOTE(jeff): Allow ntfy to function as a mail transport

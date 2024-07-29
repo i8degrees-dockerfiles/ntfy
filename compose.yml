@@ -13,9 +13,9 @@ networks:
     name: "frontend"
 
 volumes:
-  cache:
+  ntfy_cache:
     external: true
-  lib:
+  ntfy_lib:
     external: true
 
 services:
@@ -40,8 +40,8 @@ services:
       - /etc/passwd:/etc/passwd:ro
       - /etc/group:/etc/group:ro
       - ./mounts/config:/etc/ntfy:ro
-      - cache:/var/cache/ntfy
-      - lib:/var/lib/ntfy
+      - ntfy_cache:/var/cache/ntfy
+      - ntfy_lib:/var/lib/ntfy
       - ./mounts/lib:/var/lib/ntfy:rw
       - ./mounts/logs/ntfy.log:/var/log/ntfy.log:rw
     #links:
