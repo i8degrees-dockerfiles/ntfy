@@ -1,16 +1,56 @@
-version: "2.1"
+---
+#version: "3.8"
+
+networks:
+  hostnet:
+    external: true
+    name: "host"
+  backend:
+    external: false
+    name: "backend"
+  frontend:
+    external: false
+    name: "frontend"
+
+volumes:
+  cache:
+    external: true
+  lib:
+    external: true
+
 services:
   ntfy:
-    image: binwiederhier/ntfy
-    container_name: ntfy
     command:
       - serve
-    environment:
-      - TZ=UTC    # optional: Change to your desired timezone
-    user: UID:GID # optional: Set custom user/group or uid/gid
-    volumes:
-      - /var/cache/ntfy:/var/cache/ntfy
-      - /etc/ntfy:/etc/ntfy
+    restart: "unless-stopped"
     ports:
-      - 80:80
-    restart: unless-stopped
+      - "127.0.0.1:8000:80/tcp" # HTTP
+      - "127.0.0.1:8081:8081/tcp" # prometheus
+      # FIXME(JEFF): I would love to open this port up once we
+      # are able to lock things down -- nginx stream proxy w/
+      # STARTTLS support for this should work nicely to supplement
+      # the existing, but non-encrypted SMTP server ntfy hosts for 
+      # us.
+      #- "127.0.0.1:25:25/tcp" # SMTP
+    image: "binwiederhier/ntfy:v2.10.0"
+    container_name: "ntfy-1"
+    user: 1001:33 # ntfy:www-data
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - ./mounts/config:/etc/ntfy:ro
+      - cache:/var/cache/ntfy
+      - lib:/var/lib/ntfy
+      - ./mounts/lib:/var/lib/ntfy:rw
+      - ./mounts/logs/ntfy.log:/var/log/ntfy.log:rw
+    #links:
+      #- proxy
+    networks:
+      - backend
+    healthcheck:
+      test: "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"
+      interval: 60s
+      retries: 3
+      start_period: 40s
+      timeout: 10s

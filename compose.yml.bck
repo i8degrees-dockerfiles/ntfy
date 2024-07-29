@@ -1,0 +1,64 @@
+---
+version: "3.8"
+
+services:
+  ntfy:
+    command:
+      - serve
+    restart: "unless-stopped"
+    ports:
+      - "8000:80" # HTTP
+      - "8081:8081" # prometheus
+      #- "25:25" # SMTP
+    image: "binwiederhier/ntfy:v2.8.0"
+    container_name: "ntfy-1"
+    user: 1000:82 # ntfy:www-data
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /etc/ntfy:/etc/ntfy:rw
+      - /var/cache/ntfy:/var/cache/ntfy:rw
+      - /var/lib/ntfy:/var/lib/ntfy:ro
+      - /var/log/ntfy.log:/var/log/ntfy.log:rw
+    links:
+      - proxy
+    networks:
+      - backend
+    healthcheck:
+      test: "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"
+      interval: 60s
+      retries: 3
+      start_period: 40s
+      timeout: 10s
+  proxy:
+    file: "./proxy-1.conf"
+    replicas: 0
+    restart: "unless-stopped"
+    image: "nginx:1.25.3-alpine-slim"
+    container_name: "proxy-1"
+    #ports:
+      #- 0.0.0.0:80/tcp:0.0.0.0:80/tcp
+      #- 0.0.0.0:443/tcp:0.0.0.0:443/tcp
+    user: 100:82 # nginx:www-data
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+      - /var/log/nginx:/var/log/nginx:ro
+      - /etc/nginx:/etc/nginx:rw
+      - /var/lib/nginx:/var/lib/nginx:ro
+    networks:
+      - backend
+
+networks:
+  hostnet:
+    external: true
+    name: "host"
+  backend:
+    external: false
+    name: "backend"
+  frontend:
+    external: false
+    name: "frontend"
+

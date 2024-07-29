@@ -1,0 +1,13 @@
+
+.env.secret
+!.env.secret.dist
+!.env.dist
+
+build/*
+dist/*
+tmp/*
+
+mounts/cache/*
+mounts/data/*
+mounts/logs/*
+

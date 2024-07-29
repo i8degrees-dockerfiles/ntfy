@@ -1,0 +1,83 @@
+---
+
+## logs
+
+log-level: warn
+log-format: text
+log-file: "/var/log/ntfy.log"
+
+# Prometheus endpoint
+# https://notifications.home:8081/metrics
+# https://notifications.home/metrics
+metrics-listen-http: ":8081"
+
+## web access
+
+# IMPORTANT(jeff): We use nginx as a reverse proxy for serving
+# this web application to the net. This allows us a better
+# security model and also is where you will find our SSL 
+# certificates. The following must be enabled for this all to
+# happen.
+behind-proxy: true
+# listen-http: 
+
+# IMPORTANT(jeff): In order to support iOS messages, we
+# must specify an upstream server that is connected via
+# APNS/Firebase. For a self-hosted instance to support
+# these features, one must roll out a custom, signed
+# iOS app that forwards such messages.
+#
+# 1. https://docs.ntfy.sh/config/#ios-instant-notifications
+base-url: "https://notifications.479831.xyz"
+# upstream-access-token:
+
+## message cache
+
+cache-file: "/var/cache/ntfy/ntfy.db"
+cache-duration: 672h # 4 weeks
+# cache-batch-size: 25
+cache-batch-timeout: "1s"
+cache-startup-queries: |
+  pragma journal_mode = WAL;
+  pragma syncronous = normal;
+  pragma temp_store = memory;
+  pragma busy_timeout = 15000;
+  vacuum;
+
+## authentication
+
+auth-file: "/var/cache/ntfy/users.db"
+auth-default-access: "read-write"
+
+## users
+
+# NOTE(jeff): ntfy webpush keys
+web-push-public-key: "BJnJRNHxHoicVs5MxTyasjcevKVlT4vgO9snKCP-gomsevvSLBUhepQtDshm-ILh0yTlRfAn9qPGFPZt8HY41pY"
+web-push-private-key: "9cRNe5AvH5qSNhVoQqfW1qyhXoXpTT6WMYJ81k1SXiw"
+web-push-file: "/var/cache/ntfy/webpush.db"
+web-push-email-address: "i8degrees+notifications@gmail.com"
+
+## file attachments (upload)
+attachment-cache-dir: "/var/cache/ntfy/attachments"
+attachment-total-size-limit: "4G" # total capacity
+attachment-file-size-limit: "128M" # cap per file upload
+attachment-expiry-duration: "336h" # 14 days
+visitor-attachment-daily-bandwidth-limit: 512M
+  
+## email transport
+
+# NOTE(jeff): This turns the ntfy daemon into a MTA agent;
+# specially crafted e-mails can be sent from here and end
+# up in one or more of our topics.
+smtp-server-listen: ":25"
+smtp-server-domain: "notifications.479831.xyz"
+smtp-server-addr-prefix: "notify-"
+
+# NOTE(jeff): Allow ntfy to function as a mail transport
+# for any notification system that we may have that does
+# not natively support ntfy messaging.
+smtp-sender-addr: "smtp.gmail.com:587"
+smtp-sender-user: "i8degrees@gmail.com"
+# TODO(jeff): Generate a new app password for this!
+smtp-sender-pass: "akwtyyowyomkxiew"
+smtp-sender-from: "i8degrees+notifications"
