@@ -1,4 +1,8 @@
 
+# links
+ntfy.log
+server.yml
+
 .env.secret
 !.env.secret.dist
 !.env.dist
@@ -9,5 +13,6 @@ tmp/*
 
 mounts/cache/*
 mounts/data/*
+mounts/lib/*
 mounts/logs/*
 

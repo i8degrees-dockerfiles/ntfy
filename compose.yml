@@ -2,21 +2,22 @@
 #version: "3.8"
 
 networks:
-  hostnet:
+  #nginx-proxy:
+    #driver: overlay
+    #attachable: true
+    #external: true
+  traefik-proxy:
+    driver: overlay
+    attachable: true
     external: true
-    name: "host"
-  backend:
-    external: false
-    name: "backend"
-  frontend:
-    external: false
-    name: "frontend"
 
 volumes:
   ntfy_cache:
-    external: true
+    driver: local
   ntfy_lib:
-    external: true
+    driver: local
+  #ntfy_config:
+  #driver: local
 
 services:
   ntfy:
@@ -32,22 +33,39 @@ services:
       # the existing, but non-encrypted SMTP server ntfy hosts for 
       # us.
       #- "127.0.0.1:25:25/tcp" # SMTP
-    image: "binwiederhier/ntfy:v2.10.0"
+    image: binwiederhier/ntfy:v2.10.0
     container_name: "ntfy-1"
     user: 1001:33 # ntfy:www-data
+    environment:
+      - "TZ=America/Chicago"
+      - "LC_TIME=C.UTF-8"
+      - "LANG=en_US.UTF-8"
+    #env_file:
+    #- ".env"
     volumes:
+      - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+      # FIXME(JEFF): Why are we doing this? It seems rather foolish to me 
+      # unless we can come up with a damn good reason.
       - /etc/passwd:/etc/passwd:ro
       - /etc/group:/etc/group:ro
+      # IMPORTANT(JEFF): Feel free to use the named volume `ntfy_config` for
+      # storing the configuration file(s). I prefer to have immediate access to
+      # changes on-the-fly.
       - ./mounts/config:/etc/ntfy:ro
+      #- ntfy_config:/etc/ntfy
+      # IMPORTANT(JEFF): If you wish to restore an existing backup of your 
+      # ntfy cache at `/var/cache/ntfy`, you may choose to either bind mount
+      # initially, such as I did. You can always copy the data later on over
+      # to a named volume -- just ensure that the permissions are setup to
+      # what the container expects. In my case, this is `1001:33`.
+      #- ./mounts/cache:/var/cache/ntfy
       - ntfy_cache:/var/cache/ntfy
       - ntfy_lib:/var/lib/ntfy
-      - ./mounts/lib:/var/lib/ntfy:rw
+      #- ./mounts/lib:/var/lib/ntfy:rw
       - ./mounts/logs/ntfy.log:/var/log/ntfy.log:rw
-    #links:
-      #- proxy
     networks:
-      - backend
+      - traefik-proxy
     healthcheck:
       test: "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"
       interval: 60s
