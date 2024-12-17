@@ -2,7 +2,7 @@
 
 ## logs
 
-log-level: warn
+log-level: info
 log-format: text
 log-file: "/var/log/ntfy.log"
 
@@ -28,21 +28,19 @@ behind-proxy: true
 # iOS app that forwards such messages.
 #
 # 1. https://docs.ntfy.sh/config/#ios-instant-notifications
-base-url: "https://ntfy.docker.fs1.home"
+upstream-base-url: "https://ntfy.sh"
+#upstream-access-token:
+
+base-url: "https://notifications.home"
 # upstream-access-token:
 
 ## message cache
 
 cache-file: "/var/cache/ntfy/ntfy.db"
 cache-duration: 672h # 4 weeks
+# cache-startup-queries:
 # cache-batch-size: 25
-cache-batch-timeout: "1s"
-cache-startup-queries: |
-  pragma journal_mode = WAL;
-  pragma syncronous = normal;
-  pragma temp_store = memory;
-  pragma busy_timeout = 15000;
-  vacuum;
+# cache-batch-timeout: "1s"
 
 ## authentication
 
@@ -51,27 +49,35 @@ auth-default-access: "read-write"
 
 ## users
 
+# FIXME(JEFF): The web-push notifications appears to be broken for me; 
+# email publishing will not work without commenting out this section!
+#
+# 1. https://docs.ntfy.sh/config/#web-push
+#
 # NOTE(jeff): ntfy webpush keys
-web-push-public-key: "BJnJRNHxHoicVs5MxTyasjcevKVlT4vgO9snKCP-gomsevvSLBUhepQtDshm-ILh0yTlRfAn9qPGFPZt8HY41pY"
-web-push-private-key: "9cRNe5AvH5qSNhVoQqfW1qyhXoXpTT6WMYJ81k1SXiw"
+web-push-public-key: BJnJRNHxHoicVs5MxTyasjcevKVlT4vgO9snKCP-gomsevvSLBUhepQtDshm-ILh0yTlRfAn9qPGFPZt8HY41pY
+web-push-private-key: 9cRNe5AvH5qSNhVoQqfW1qyhXoXpTT6WMYJ81k1SXiw
 web-push-file: "/var/cache/ntfy/webpush.db"
-web-push-email-address: "i8degrees+notifications@gmail.com"
+web-push-email-address: "i8degrees+ntfy@gmail.com"
 
 ## file attachments (upload)
 attachment-cache-dir: "/var/cache/ntfy/attachments"
-attachment-total-size-limit: "4G" # total capacity
-attachment-file-size-limit: "128M" # cap per file upload
+attachment-total-size-limit: "2G"
+attachment-file-size-limit: "128M"
 attachment-expiry-duration: "336h" # 14 days
-visitor-attachment-daily-bandwidth-limit: 512M
-  
-## email transport
+
+## SMTP transport
+
+### inbound
 
 # NOTE(jeff): This turns the ntfy daemon into a MTA agent;
 # specially crafted e-mails can be sent from here and end
 # up in one or more of our topics.
 smtp-server-listen: ":25"
-smtp-server-domain: "docker.fs1.home"
-smtp-server-addr-prefix: "notify-"
+smtp-server-domain: "notifications.home"
+#smtp-server-addr-prefix: "notify-"
+
+### outbound
 
 # NOTE(jeff): Allow ntfy to function as a mail transport
 # for any notification system that we may have that does
@@ -80,4 +86,4 @@ smtp-sender-addr: "smtp.gmail.com:587"
 smtp-sender-user: "i8degrees@gmail.com"
 # TODO(jeff): Generate a new app password for this!
 smtp-sender-pass: "akwtyyowyomkxiew"
-smtp-sender-from: "i8degrees+notifications"
+smtp-sender-from: "i8degrees+notifications@notifications.home"

@@ -2,10 +2,13 @@
 #version: "3.8"
 
 networks:
+<<<<<<< HEAD
   #nginx-proxy:
     #driver: overlay
     #attachable: true
     #external: true
+=======
+>>>>>>> cdc3a6e (Finish tweaks from LXC -> Docker)
   traefik-proxy:
     driver: overlay
     attachable: true
@@ -23,10 +26,12 @@ services:
   ntfy:
     command:
       - serve
-    restart: "unless-stopped"
+    restart: on-failure:2
     ports:
-      - "127.0.0.1:8000:80/tcp" # HTTP
+      - "8000:80/tcp" # HTTP
+      #- "127.0.0.1:8000:80/tcp" # HTTP
       - "127.0.0.1:8081:8081/tcp" # prometheus
+
       # FIXME(JEFF): I would love to open this port up once we
       # are able to lock things down -- nginx stream proxy w/
       # STARTTLS support for this should work nicely to supplement
@@ -35,6 +40,7 @@ services:
       #- "127.0.0.1:25:25/tcp" # SMTP
     image: binwiederhier/ntfy:v2.10.0
     container_name: "ntfy-1"
+<<<<<<< HEAD
     user: 1001:33 # ntfy:www-data
     environment:
       - "TZ=America/Chicago"
@@ -66,9 +72,41 @@ services:
       - ./mounts/logs/ntfy.log:/var/log/ntfy.log:rw
     networks:
       - traefik-proxy
+=======
+    #user: 1001:33 # ntfy:www-data
+    networks:
+      - traefik-proxy
+    environment:
+      - TZ=America/Chicago
+      - LC_ALL=C.UTF-8
+      - PUID=65534  # nobody
+      - PGID=65534  # :nogroup
+    volumes:
+      # R/O binds
+      - /etc/localtime:/etc/localtime:ro
+      - ./mounts/config:/etc/ntfy:ro
+      # R/W volumes & binds
+      - ntfy_cache:/var/cache/ntfy:rw
+      - ntfy_lib:/var/lib/ntfy
+      - ./ntfy.log:/var/log/ntfy.log:rw
+>>>>>>> cdc3a6e (Finish tweaks from LXC -> Docker)
     healthcheck:
       test: "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"
       interval: 60s
       retries: 3
       start_period: 40s
       timeout: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notifications.rule=Host(`notifications.home`) && PathPrefix(`/`)"
+      - "traefik.http.routers.notifications.entrypoints=websecure"
+      - "traefik.http.routers.notifications.tls.certresolver=staging-web-acme"
+      - "traefik.http.services.notifications.loadbalancer.server.port=80"
+      - "traefik.http.routers.notifications.service=notifications"
+      #
+      - "homepage.group=syn"
+      - "homepage.name=ntfy-1"
+      - "homepage.href=https://notifications.home"
+      - "homepage.siteMonitor=http://docker.fs1.home:8000"
+      - "homepage.ping=notifications.home"
+      - "traefik.http.middlewares.basic-auth.basicAuth.usersFile=/etc/traefik/htpasswd"
