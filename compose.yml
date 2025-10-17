@@ -1,14 +1,17 @@
+# ntfy docker compose service
+#
+# TODO(JEFF): setup TCP port 25 via Traefik for SMTP relay
+#
+# DEPRECATED(JEFF): notifications.home will be removed within 
+# a year's time. Please use notifications.fs1.home instead.
 ---
 #version: "3.8"
 
 networks:
-<<<<<<< HEAD
   #nginx-proxy:
     #driver: overlay
     #attachable: true
     #external: true
-=======
->>>>>>> cdc3a6e (Finish tweaks from LXC -> Docker)
   traefik-proxy:
     driver: overlay
     attachable: true
@@ -26,87 +29,73 @@ services:
   ntfy:
     command:
       - serve
-    restart: on-failure:2
+    restart: "unless-stopped"
     ports:
-      - "8000:80/tcp" # HTTP
-      #- "127.0.0.1:8000:80/tcp" # HTTP
+      - "127.0.0.1:8000:80/tcp" # HTTP
       - "127.0.0.1:8081:8081/tcp" # prometheus
-
       # FIXME(JEFF): I would love to open this port up once we
       # are able to lock things down -- nginx stream proxy w/
       # STARTTLS support for this should work nicely to supplement
       # the existing, but non-encrypted SMTP server ntfy hosts for 
       # us.
-      #- "127.0.0.1:25:25/tcp" # SMTP
-    image: binwiederhier/ntfy:v2.10.0
+      - "127.0.0.1:25:25/tcp" # SMTP
+    image: binwiederhier/ntfy:v2.14.0
     container_name: "ntfy-1"
-<<<<<<< HEAD
     user: 1001:33 # ntfy:www-data
-    environment:
-      - "TZ=America/Chicago"
-      - "LC_TIME=C.UTF-8"
-      - "LANG=en_US.UTF-8"
-    #env_file:
-    #- ".env"
+    env_file:
+      - ".env"
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      # FIXME(JEFF): Why are we doing this? It seems rather foolish to me 
-      # unless we can come up with a damn good reason.
-      - /etc/passwd:/etc/passwd:ro
-      - /etc/group:/etc/group:ro
       # IMPORTANT(JEFF): Feel free to use the named volume `ntfy_config` for
       # storing the configuration file(s). I prefer to have immediate access to
       # changes on-the-fly.
-      - ./mounts/config:/etc/ntfy:ro
+      - ./mounts/config:/etc/ntfy:rw
       #- ntfy_config:/etc/ntfy
       # IMPORTANT(JEFF): If you wish to restore an existing backup of your 
       # ntfy cache at `/var/cache/ntfy`, you may choose to either bind mount
       # initially, such as I did. You can always copy the data later on over
       # to a named volume -- just ensure that the permissions are setup to
       # what the container expects. In my case, this is `1001:33`.
-      #- ./mounts/cache:/var/cache/ntfy
-      - ntfy_cache:/var/cache/ntfy
-      - ntfy_lib:/var/lib/ntfy
+      - ./mounts/cache:/var/cache/ntfy:rw
+      #- ntfy_cache:/var/cache/ntfy
+      - ntfy_lib:/var/lib/ntfy:rw
       #- ./mounts/lib:/var/lib/ntfy:rw
       - ./mounts/logs/ntfy.log:/var/log/ntfy.log:rw
     networks:
       - traefik-proxy
-=======
-    #user: 1001:33 # ntfy:www-data
-    networks:
-      - traefik-proxy
-    environment:
-      - TZ=America/Chicago
-      - LC_ALL=C.UTF-8
-      - PUID=65534  # nobody
-      - PGID=65534  # :nogroup
-    volumes:
-      # R/O binds
-      - /etc/localtime:/etc/localtime:ro
-      - ./mounts/config:/etc/ntfy:ro
-      # R/W volumes & binds
-      - ntfy_cache:/var/cache/ntfy:rw
-      - ntfy_lib:/var/lib/ntfy
-      - ./ntfy.log:/var/log/ntfy.log:rw
->>>>>>> cdc3a6e (Finish tweaks from LXC -> Docker)
     healthcheck:
-      test: "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1"
+      test: "wget -q --tries=1 http://localhost:80/v1/health -O - | grep -Eo '\"healthy\"\\s*:\\s*true' || exit 1; "
       interval: 60s
-      retries: 3
-      start_period: 40s
+      retries: 12
+      start_period: 60s
       timeout: 10s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.notifications.rule=Host(`notifications.home`) && PathPrefix(`/`)"
-      - "traefik.http.routers.notifications.entrypoints=websecure"
-      - "traefik.http.routers.notifications.tls.certresolver=staging-web-acme"
-      - "traefik.http.services.notifications.loadbalancer.server.port=80"
-      - "traefik.http.routers.notifications.service=notifications"
-      #
+      - "traefik.http.routers.notifications-home.rule=Host(`notifications.home`) && PathPrefix(`/`)"
+      - "traefik.http.routers.notifications-home.entrypoints=websecure"
+      - "traefik.http.services.notifications-home.loadbalancer.server.port=80"
+      - "traefik.http.routers.notifications-home.service=notifications-home"
+      - "traefik.http.routers.notifications-home.tls.certresolver=staging-web-acme"
+      # default route at notifications.fs1.home
+      - "traefik.http.routers.notifications-fs1.rule=Host(`notifications.fs1.home`) && PathPrefix(`/`)"
+      - "traefik.http.routers.notifications-fs1.entrypoints=websecure"
+      - "traefik.http.services.notifications-fs1.loadbalancer.server.port=80"
+      - "traefik.http.routers.notifications-fs1.service=notifications-fs1"
+      - "traefik.http.routers.notifications-fs1.tls.certresolver=staging-web-acme"
+      # default route for prometheus metrics
+      - "traefik.http.routers.notifications-fs1-metrics.rule=Host(`notifications.fs1.home`) && PathPrefix(`/metrics`)"
+      - "traefik.http.routers.notifications-fs1-metrics.entrypoints=websecure"
+      - "traefik.http.services.notifications-fs1-metrics.loadbalancer.server.port=8081"
+      - "traefik.http.routers.notifications-fs1-metrics.service=notifications-fs1-metrics"
+      - "traefik.http.routers.notifications-fs1-metrics.tls.certresolver=staging-web-acme"
+      - "traefik.http.routers.notifications-home-metrics.rule=Host(`notifications.home`) && PathPrefix(`/metrics`)"
+      - "traefik.http.routers.notifications-home-metrics.entrypoints=websecure"
+      - "traefik.http.services.notifications-home-metrics.loadbalancer.server.port=8081"
+      - "traefik.http.routers.notifications-home-metrics.service=notifications-home-metrics"
+      - "traefik.http.routers.notifications-home-metrics.tls.certresolver=staging-web-acme"
       - "homepage.group=syn"
       - "homepage.name=ntfy-1"
-      - "homepage.href=https://notifications.home"
-      - "homepage.siteMonitor=http://docker.fs1.home:8000"
+      - "homepage.href=http://notifications.home"
+      - "homepage.siteMonitor=http://notifications.home"
       - "homepage.ping=notifications.home"
-      - "traefik.http.middlewares.basic-auth.basicAuth.usersFile=/etc/traefik/htpasswd"
