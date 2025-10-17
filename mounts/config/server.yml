@@ -4,7 +4,7 @@
 
 log-level: info
 log-format: text
-log-file: "/var/log/ntfy.log"
+#log-file: "/var/log/ntfy.log"
 
 # Prometheus endpoint
 # https://notifications.home:8081/metrics
